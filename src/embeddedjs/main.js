@@ -15,6 +15,7 @@ const halfHeight = render.height / 2;
 
 const DEFAULT_ROUND_SECONDS = 120;
 const DEFAULT_REST_SECONDS = 60;
+const DEFAULT_VIBRATION_ENABLED = true;
 const LONG_PRESS_MS = 700;
 
 let roundSeconds = DEFAULT_ROUND_SECONDS;
@@ -23,12 +24,13 @@ let roundRemaining = DEFAULT_ROUND_SECONDS;
 let restRemaining = DEFAULT_REST_SECONDS;
 let activeTimer = "round";
 let isRunning = false;
+let vibrationEnabled = DEFAULT_VIBRATION_ENABLED;
 let tickTimer;
 let longPressTimer;
 let longPressHandled = false;
 
 const messages = new Message({
-	keys: ["ROUND_SECONDS", "REST_SECONDS"],
+	keys: ["ROUND_SECONDS", "REST_SECONDS", "VIBRATION_ENABLED"],
 	onReadable() {
 		const map = messages.read();
 		if (!map)
@@ -36,11 +38,14 @@ const messages = new Message({
 
 		const newRound = map.get("ROUND_SECONDS");
 		const newRest = map.get("REST_SECONDS");
+		const newVibrationEnabled = map.get("VIBRATION_ENABLED");
 
 		if (Number.isInteger(newRound) && (newRound > 0))
 			roundSeconds = newRound;
 		if (Number.isInteger(newRest) && (newRest > 0))
 			restSeconds = newRest;
+		if ((newVibrationEnabled === 0) || (newVibrationEnabled === 1))
+			vibrationEnabled = (newVibrationEnabled === 1);
 
 		resetTimers();
 
@@ -126,6 +131,7 @@ function onTick() {
 	if ("round" === activeTimer) {
 		roundRemaining -= 1;
 		if (roundRemaining <= 0) {
+			vibrateRoundEnd();
 			roundRemaining = roundSeconds;
 			restRemaining = restSeconds;
 			activeTimer = "rest";
@@ -134,6 +140,7 @@ function onTick() {
 	else {
 		restRemaining -= 1;
 		if (restRemaining <= 0) {
+			vibrateRestEnd();
 			restRemaining = restSeconds;
 			roundRemaining = roundSeconds;
 			activeTimer = "round";
@@ -156,6 +163,38 @@ function drawSection(yOffset, label, time) {
 	const timeX = (render.width - timeWidth) / 2;
 	const timeY = yOffset + (sectionHeight - largeFont.height) / 2;
 	render.drawText(time, largeFont, black, timeX, timeY);
+}
+
+function tryShortVibration() {
+	const fn = globalThis.vibes_short_pulse;
+	if ("function" !== typeof fn)
+		return false;
+	try {
+		fn();
+		return true;
+	}
+	catch (_) {
+		return false;
+	}
+}
+
+function vibrateRoundEnd() {
+	if (!vibrationEnabled)
+		return;
+
+	if (!tryShortVibration())
+		return;
+
+	Timer.set(() => {
+		tryShortVibration();
+	}, 180);
+}
+
+function vibrateRestEnd() {
+	if (!vibrationEnabled)
+		return;
+
+	tryShortVibration();
 }
 
 draw();

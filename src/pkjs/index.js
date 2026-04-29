@@ -1,5 +1,6 @@
 const DEFAULT_ROUND_SECONDS = 120;
 const DEFAULT_REST_SECONDS = 60;
+const DEFAULT_VIBRATION_ENABLED = true;
 
 function toPositiveInt(value, fallback) {
     const parsed = parseInt(value, 10);
@@ -12,13 +13,15 @@ function toPositiveInt(value, fallback) {
 function loadSettings() {
     return {
         round: toPositiveInt(localStorage.getItem("roundSeconds"), DEFAULT_ROUND_SECONDS),
-        rest: toPositiveInt(localStorage.getItem("restSeconds"), DEFAULT_REST_SECONDS)
+        rest: toPositiveInt(localStorage.getItem("restSeconds"), DEFAULT_REST_SECONDS),
+        vibrationEnabled: localStorage.getItem("vibrationEnabled") !== "0"
     };
 }
 
 function saveSettings(settings) {
     localStorage.setItem("roundSeconds", String(settings.round));
     localStorage.setItem("restSeconds", String(settings.rest));
+    localStorage.setItem("vibrationEnabled", settings.vibrationEnabled ? "1" : "0");
 }
 
 function sendSettingsToWatch() {
@@ -26,7 +29,8 @@ function sendSettingsToWatch() {
     Pebble.sendAppMessage(
         {
             ROUND_SECONDS: settings.round,
-            REST_SECONDS: settings.rest
+            REST_SECONDS: settings.rest,
+            VIBRATION_ENABLED: settings.vibrationEnabled ? 1 : 0
         },
         function() {
             console.log("Settings sent to watch.");
@@ -69,6 +73,11 @@ function buildConfigPageUrl() {
                 <label for="rest">repos (seconds)</label>
                 <input id="rest" type="number" min="1" step="1" value="${settings.rest}" />
 
+                <label for="vibration">
+                    <input id="vibration" type="checkbox" ${settings.vibrationEnabled ? "checked" : ""} />
+                    vibrations en fin de chronometre
+                </label>
+
                 <div class="hint">Default values: round 120, repos 60</div>
 
                 <div class="actions">
@@ -89,9 +98,10 @@ function buildConfigPageUrl() {
             document.getElementById("save").addEventListener("click", function() {
                 var round = parseInt(document.getElementById("round").value, 10);
                 var rest = parseInt(document.getElementById("rest").value, 10);
+                var vibrationEnabled = document.getElementById("vibration").checked;
                 if (!round || round <= 0) round = ${DEFAULT_ROUND_SECONDS};
                 if (!rest || rest <= 0) rest = ${DEFAULT_REST_SECONDS};
-                closeWith({ round: round, rest: rest });
+                closeWith({ round: round, rest: rest, vibrationEnabled: vibrationEnabled });
             });
         </script>
     </body>
@@ -128,7 +138,8 @@ Pebble.addEventListener("webviewclosed", function(e) {
 
     const settings = {
         round: toPositiveInt(data.round, DEFAULT_ROUND_SECONDS),
-        rest: toPositiveInt(data.rest, DEFAULT_REST_SECONDS)
+        rest: toPositiveInt(data.rest, DEFAULT_REST_SECONDS),
+        vibrationEnabled: ("vibrationEnabled" in data) ? !!data.vibrationEnabled : DEFAULT_VIBRATION_ENABLED
     };
 
     saveSettings(settings);

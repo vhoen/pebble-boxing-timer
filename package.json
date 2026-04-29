@@ -20,7 +20,8 @@
     },
     "messageKeys": [
       "ROUND_SECONDS",
-      "REST_SECONDS"
+      "REST_SECONDS",
+      "VIBRATION_ENABLED"
     ],
     "resources": {
       "media": []
