@@ -16,7 +16,7 @@
       "gabbro"
     ],
     "watchapp": {
-      "watchface": true
+      "watchface": false
     },
     "messageKeys": [
       "ROUND_SECONDS",

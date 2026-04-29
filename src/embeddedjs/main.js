@@ -1,5 +1,7 @@
 import Poco from "commodetto/Poco";
 import Message from "pebble/message";
+import Button from "pebble/button";
+import Timer from "timer";
 
 let render = new Poco(screen);
 
@@ -13,9 +15,17 @@ const halfHeight = render.height / 2;
 
 const DEFAULT_ROUND_SECONDS = 120;
 const DEFAULT_REST_SECONDS = 60;
+const LONG_PRESS_MS = 700;
 
 let roundSeconds = DEFAULT_ROUND_SECONDS;
 let restSeconds = DEFAULT_REST_SECONDS;
+let roundRemaining = DEFAULT_ROUND_SECONDS;
+let restRemaining = DEFAULT_REST_SECONDS;
+let activeTimer = "round";
+let isRunning = false;
+let tickTimer;
+let longPressTimer;
+let longPressHandled = false;
 
 const messages = new Message({
 	keys: ["ROUND_SECONDS", "REST_SECONDS"],
@@ -32,7 +42,33 @@ const messages = new Message({
 		if (Number.isInteger(newRest) && (newRest > 0))
 			restSeconds = newRest;
 
+		resetTimers();
+
 		draw();
+	}
+});
+
+const selectButton = new Button({
+	type: "select",
+	onPush(pushed) {
+		if (pushed) {
+			longPressHandled = false;
+			longPressTimer = Timer.set(() => {
+				longPressHandled = true;
+				resetTimers();
+				draw();
+			}, LONG_PRESS_MS);
+			return;
+		}
+
+		if (longPressTimer) {
+			Timer.clear(longPressTimer);
+			longPressTimer = undefined;
+		}
+
+		if (!longPressHandled) {
+			toggleRunning();
+		}
 	}
 });
 
@@ -48,12 +84,63 @@ function draw() {
 	render.fillRectangle(white, 0, 0, render.width, render.height);
 	
 	// Upper half - Round
-	drawSection(0, "Round", formatSeconds(roundSeconds));
+	drawSection(0, "Round", formatSeconds(roundRemaining));
 	
 	// Lower half - Repos
-	drawSection(halfHeight, "Repos", formatSeconds(restSeconds));
+	drawSection(halfHeight, "Repos", formatSeconds(restRemaining));
  
 	render.end();
+}
+
+function resetTimers() {
+	stopTicking();
+	roundRemaining = roundSeconds;
+	restRemaining = restSeconds;
+	activeTimer = "round";
+	isRunning = false;
+}
+
+function toggleRunning() {
+	if (isRunning) {
+		stopTicking();
+		isRunning = false;
+		return;
+	}
+
+	isRunning = true;
+	if (!tickTimer)
+		tickTimer = Timer.repeat(onTick, 1000);
+}
+
+function stopTicking() {
+	if (!tickTimer)
+		return;
+	Timer.clear(tickTimer);
+	tickTimer = undefined;
+}
+
+function onTick() {
+	if (!isRunning)
+		return;
+
+	if ("round" === activeTimer) {
+		roundRemaining -= 1;
+		if (roundRemaining <= 0) {
+			roundRemaining = roundSeconds;
+			restRemaining = restSeconds;
+			activeTimer = "rest";
+		}
+	}
+	else {
+		restRemaining -= 1;
+		if (restRemaining <= 0) {
+			restRemaining = restSeconds;
+			roundRemaining = roundSeconds;
+			activeTimer = "round";
+		}
+	}
+
+	draw();
 }
 
 function drawSection(yOffset, label, time) {
