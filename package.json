@@ -19,7 +19,8 @@
       "watchface": true
     },
     "messageKeys": [
-      "dummy"
+      "ROUND_SECONDS",
+      "REST_SECONDS"
     ],
     "resources": {
       "media": []

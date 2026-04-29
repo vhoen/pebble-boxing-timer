@@ -1,4 +1,5 @@
 import Poco from "commodetto/Poco";
+import Message from "pebble/message";
 
 let render = new Poco(screen);
 
@@ -10,15 +11,47 @@ const white = render.makeColor(255, 255, 255);
 
 const halfHeight = render.height / 2;
 
+const DEFAULT_ROUND_SECONDS = 120;
+const DEFAULT_REST_SECONDS = 60;
+
+let roundSeconds = DEFAULT_ROUND_SECONDS;
+let restSeconds = DEFAULT_REST_SECONDS;
+
+const messages = new Message({
+	keys: ["ROUND_SECONDS", "REST_SECONDS"],
+	onReadable() {
+		const map = messages.read();
+		if (!map)
+			return;
+
+		const newRound = map.get("ROUND_SECONDS");
+		const newRest = map.get("REST_SECONDS");
+
+		if (Number.isInteger(newRound) && (newRound > 0))
+			roundSeconds = newRound;
+		if (Number.isInteger(newRest) && (newRest > 0))
+			restSeconds = newRest;
+
+		draw();
+	}
+});
+
+function formatSeconds(totalSeconds) {
+	const minutes = Math.floor(totalSeconds / 60);
+	const seconds = totalSeconds % 60;
+	const paddedSeconds = String(seconds).padStart(2, "0");
+	return `${minutes}:${paddedSeconds}`;
+}
+
 function draw() {
 	render.begin();
 	render.fillRectangle(white, 0, 0, render.width, render.height);
 	
 	// Upper half - Round
-	drawSection(0, "Round", "--:--");
+	drawSection(0, "Round", formatSeconds(roundSeconds));
 	
 	// Lower half - Repos
-	drawSection(halfHeight, "Repos", "--:--");
+	drawSection(halfHeight, "Repos", formatSeconds(restSeconds));
  
 	render.end();
 }
