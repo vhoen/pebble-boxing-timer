@@ -5,6 +5,11 @@
   "keywords": ["pebble-app"],
   "private": true,
   "dependencies": {},
+  "scripts": {
+    "test": "node --test",
+    "test:unit": "node --test test/unit",
+    "test:e2e": "node --test test/e2e"
+  },
   "pebble": {
     "displayName": "pebble-boxing-timer",
     "uuid": "612d46cd-e226-4811-9ea0-074f6f0e010a",
