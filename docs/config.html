@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width,initial-scale=1" />
+        <title>Boxing Timer</title>
+        <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: #f4f5f7; color: #1f2937; }
+            .wrap { max-width: 480px; margin: 0 auto; padding: 20px; }
+            h1 { font-size: 22px; margin: 0 0 16px; }
+            .card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08); }
+            label { display: block; font-weight: 600; margin: 10px 0 6px; text-transform: lowercase; }
+            input[type="number"] { width: 100%; box-sizing: border-box; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; }
+            .hint { font-size: 13px; color: #6b7280; margin-top: 10px; }
+            .actions { display: flex; gap: 10px; margin-top: 16px; }
+            button { flex: 1; border: 0; border-radius: 10px; padding: 12px; font-size: 16px; }
+            .save { background: #111827; color: #fff; }
+            .cancel { background: #e5e7eb; color: #111827; }
+        </style>
+    </head>
+    <body>
+        <div class="wrap">
+            <h1>Configuration</h1>
+            <div class="card">
+                <label for="round">round (seconds)</label>
+                <input id="round" type="number" min="1" step="1" />
+
+                <label for="rest">repos (seconds)</label>
+                <input id="rest" type="number" min="1" step="1" />
+
+                <label for="vibration">
+                    <input id="vibration" type="checkbox" />
+                    vibrations en fin de chronometre
+                </label>
+
+                <div class="hint">Default values: round 120, repos 60</div>
+
+                <div class="actions">
+                    <button class="cancel" id="cancel" type="button">Annuler</button>
+                    <button class="save" id="save" type="button">Enregistrer</button>
+                </div>
+            </div>
+        </div>
+        <script>
+            var DEFAULT_ROUND_SECONDS = 120;
+            var DEFAULT_REST_SECONDS = 60;
+
+            function getQueryParam(name, fallback) {
+                var query = location.search.substring(1);
+                var vars = query.split("&");
+                for (var i = 0; i < vars.length; i++) {
+                    var pair = vars[i].split("=");
+                    if (pair[0] === name) {
+                        return decodeURIComponent(pair[1]);
+                    }
+                }
+                return fallback;
+            }
+
+            function toPositiveInt(value, fallback) {
+                var parsed = parseInt(value, 10);
+                if (isNaN(parsed) || parsed <= 0) {
+                    return fallback;
+                }
+                return parsed;
+            }
+
+            var returnTo = getQueryParam("return_to", "pebblejs://close#");
+
+            var roundSeconds = toPositiveInt(getQueryParam("round", ""), DEFAULT_ROUND_SECONDS);
+            var restSeconds = toPositiveInt(getQueryParam("rest", ""), DEFAULT_REST_SECONDS);
+            var vibrationParam = getQueryParam("vibration", "1");
+            var vibrationEnabled = vibrationParam !== "0";
+
+            document.getElementById("round").value = String(roundSeconds);
+            document.getElementById("rest").value = String(restSeconds);
+            document.getElementById("vibration").checked = vibrationEnabled;
+
+            function closeWith(payload) {
+                if (payload.cancelled) {
+                    if (returnTo.indexOf("pebblejs://close") === 0) {
+                        document.location = "pebblejs://close";
+                    } else {
+                        document.location = returnTo;
+                    }
+                    return;
+                }
+                document.location = returnTo + encodeURIComponent(JSON.stringify(payload));
+            }
+
+            document.getElementById("cancel").addEventListener("click", function() {
+                closeWith({ cancelled: true });
+            });
+
+            document.getElementById("save").addEventListener("click", function() {
+                var round = parseInt(document.getElementById("round").value, 10);
+                var rest = parseInt(document.getElementById("rest").value, 10);
+                var vibration = document.getElementById("vibration").checked;
+                if (!round || round <= 0) round = DEFAULT_ROUND_SECONDS;
+                if (!rest || rest <= 0) rest = DEFAULT_REST_SECONDS;
+                closeWith({ round: round, rest: rest, vibrationEnabled: vibration });
+            });
+        </script>
+    </body>
+</html>

@@ -40,7 +40,18 @@ test("loadSettings reads stored values and keeps defaults", () => {
     });
 });
 
-test("buildConfigPageUrl encodes the current settings", () => {
+test("buildConfigQueryString encodes settings", () => {
+    assert.equal(
+        settings.buildConfigQueryString({ round: 135, rest: 75, vibrationEnabled: true }),
+        "round=135&rest=75&vibration=1"
+    );
+    assert.equal(
+        settings.buildConfigQueryString({ round: 90, rest: 30, vibrationEnabled: false }),
+        "round=90&rest=30&vibration=0"
+    );
+});
+
+test("buildConfigPageUrl returns HTTPS URL with current settings", () => {
     const storage = createStorage({
         roundSeconds: "135",
         restSeconds: "75",
@@ -48,10 +59,10 @@ test("buildConfigPageUrl encodes the current settings", () => {
     });
 
     const url = settings.buildConfigPageUrl(storage);
-    assert.ok(url.startsWith("data:text/html,"));
-
-    const html = decodeURIComponent(url.slice("data:text/html,".length));
-    assert.match(html, /value="135"/);
-    assert.match(html, /value="75"/);
-    assert.match(html, /checked/);
+    assert.ok(url.startsWith("https://"));
+    assert.ok(!url.startsWith("data:text/html"));
+    assert.equal(
+        url,
+        settings.CONFIG_BASE_URL + "?round=135&rest=75&vibration=1"
+    );
 });

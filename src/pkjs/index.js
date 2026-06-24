@@ -1,9 +1,5 @@
 const settings = require("./settings");
 
-const DEFAULT_ROUND_SECONDS = 120;
-const DEFAULT_REST_SECONDS = 60;
-const DEFAULT_VIBRATION_ENABLED = true;
-
 function sendSettingsToWatch() {
     const currentSettings = settings.loadSettings(localStorage);
     Pebble.sendAppMessage(
@@ -21,8 +17,12 @@ function sendSettingsToWatch() {
     );
 }
 
-function buildConfigPageUrl() {
-    return settings.buildConfigPageUrl(localStorage);
+function parseConfigResponse(response) {
+    try {
+        return JSON.parse(decodeURIComponent(response));
+    } catch (_) {
+        return JSON.parse(response);
+    }
 }
 
 Pebble.addEventListener("ready", function() {
@@ -31,23 +31,27 @@ Pebble.addEventListener("ready", function() {
 });
 
 Pebble.addEventListener("showConfiguration", function() {
-    Pebble.openURL(buildConfigPageUrl());
+    const url = settings.buildConfigPageUrl(localStorage);
+    console.log("Opening configuration:", url);
+    Pebble.openURL(url);
 });
 
 Pebble.addEventListener("webviewclosed", function(e) {
     if (!e || !e.response) {
+        console.log("Configuration closed without response.");
         return;
     }
 
     let data;
     try {
-        data = JSON.parse(decodeURIComponent(e.response));
+        data = parseConfigResponse(e.response);
     } catch (error) {
-        console.log("Invalid config response", error);
+        console.log("Invalid config response:", e.response, error);
         return;
     }
 
     if (data.cancelled) {
+        console.log("Configuration cancelled.");
         return;
     }
 
