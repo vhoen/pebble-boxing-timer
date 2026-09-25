@@ -53,29 +53,25 @@ const messages = new Message({
 	}
 });
 
-const selectButton = new Button({
-	type: "select",
-	onPush(pushed) {
-		if (pushed) {
-			longPressHandled = false;
-			longPressTimer = Timer.set(() => {
-				longPressHandled = true;
-				resetTimers();
-				draw();
-			}, LONG_PRESS_MS);
-			return;
-		}
-
-		if (longPressTimer) {
-			Timer.clear(longPressTimer);
-			longPressTimer = undefined;
-		}
-
-		if (!longPressHandled) {
-			toggleRunning();
-		}
+function onSelectPush(pushed) {
+	if (pushed) {
+		longPressHandled = false;
+		longPressTimer = Timer.set(() => {
+			longPressHandled = true;
+			resetTimers();
+			draw();
+		}, LONG_PRESS_MS);
+		return;
 	}
-});
+
+	if (longPressTimer) {
+		Timer.clear(longPressTimer);
+		longPressTimer = undefined;
+	}
+
+	if (!longPressHandled)
+		toggleRunning();
+}
 
 function formatSeconds(totalSeconds) {
 	const minutes = Math.floor(totalSeconds / 60);
@@ -197,4 +193,12 @@ function vibrateRestEnd() {
 	tryShortVibration();
 }
 
-draw();
+// A zero delay still runs before the pushed window can take clicks or paint.
+Timer.set(() => {
+	draw();
+	new Button({
+		type: "select",
+		raw: true,
+		onPush: onSelectPush
+	});
+}, 50);
